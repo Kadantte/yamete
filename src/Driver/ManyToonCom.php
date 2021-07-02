@@ -3,14 +3,19 @@
 namespace Yamete\Driver;
 
 use GuzzleHttp\Exception\GuzzleException;
-use PHPHtmlParser\Dom\AbstractNode;
+use PHPHtmlParser\Exceptions\ChildNotFoundException;
+use PHPHtmlParser\Exceptions\CircularException;
+use PHPHtmlParser\Exceptions\ContentLengthException;
+use PHPHtmlParser\Exceptions\LogicalException;
+use PHPHtmlParser\Exceptions\NotLoadedException;
+use PHPHtmlParser\Exceptions\StrictException;
 use Traversable;
 use Yamete\DriverAbstract;
 
 if (!class_exists(ManyToonCom::class)) {
     class ManyToonCom extends DriverAbstract
     {
-        protected $aMatches = [];
+        protected array $aMatches = [];
         private const DOMAIN = 'manytoon.com';
 
         /**
@@ -28,27 +33,31 @@ if (!class_exists(ManyToonCom::class)) {
         }
 
         /**
-         * @return array|string[]
+         * @return array
          * @throws GuzzleException
+         * @throws ChildNotFoundException
+         * @throws CircularException
+         * @throws ContentLengthException
+         * @throws LogicalException
+         * @throws NotLoadedException
+         * @throws StrictException
          */
         public function getDownloadables(): array
         {
             /**
              * @var Traversable $oChapters
-             * @var AbstractNode $oChapter
-             * @var AbstractNode $oImg
              */
             $sUrl = 'https://' . $this->getDomain() . '/' . $this->aMatches['category']
                 . '/' . $this->aMatches['album'] . '/';
             $oRes = $this->getClient()->request('GET', $sUrl);
-            $oChapters = $this->getDomParser()->load((string)$oRes->getBody())->find('li.wp-manga-chapter a');
+            $oChapters = $this->getDomParser()->loadStr((string)$oRes->getBody())->find('li.wp-manga-chapter a');
             $aChapters = iterator_to_array($oChapters);
             krsort($aChapters);
             $index = 0;
             $aReturn = [];
             foreach ($aChapters as $oChapter) {
                 $oRes = $this->getClient()->request('GET', $oChapter->getAttribute('href'));
-                foreach ($this->getDomParser()->load((string)$oRes->getBody())->find('.reading-content img') as $oImg) {
+                foreach ($this->getDomParser()->loadStr((string)$oRes->getBody())->find('.reading-content img') as $oImg) {
                     $sFilename = trim($oImg->getAttribute('src'));
                     $iPos = strpos($sFilename, '?');
                     $sBasename = $this->getFolder() . DIRECTORY_SEPARATOR . str_pad($index++, 5, '0', STR_PAD_LEFT)

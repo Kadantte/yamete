@@ -3,13 +3,18 @@
 namespace Yamete\Driver;
 
 use GuzzleHttp\Exception\GuzzleException;
-use PHPHtmlParser\Dom\AbstractNode;
+use PHPHtmlParser\Exceptions\ChildNotFoundException;
+use PHPHtmlParser\Exceptions\CircularException;
+use PHPHtmlParser\Exceptions\ContentLengthException;
+use PHPHtmlParser\Exceptions\LogicalException;
+use PHPHtmlParser\Exceptions\NotLoadedException;
+use PHPHtmlParser\Exceptions\StrictException;
 use Yamete\DriverAbstract;
 
 class SuperHQNet extends DriverAbstract
 {
-    private $aMatches = [];
     private const DOMAIN = 'superhq.net';
+    private array $aMatches = [];
 
     public function canHandle(): bool
     {
@@ -21,28 +26,30 @@ class SuperHQNet extends DriverAbstract
     }
 
     /**
-     * @return array|string[]
+     * @return array
      * @throws GuzzleException
+     * @throws ChildNotFoundException
+     * @throws CircularException
+     * @throws ContentLengthException
+     * @throws LogicalException
+     * @throws NotLoadedException
+     * @throws StrictException
      */
     public function getDownloadables(): array
     {
         $oRes = $this->getClient()->request('GET', $this->sUrl);
         $aReturn = [];
         $index = 0;
-        foreach ($this->getDomParser()->load((string)$oRes->getBody())->find('.single-post .single img') as $oImg) {
-            /**
-             * @var AbstractNode $oImg
-             */
-            $sFilename = $oImg->getAttribute('src');
-            if (strpos($sFilename, self::DOMAIN) === false) {
+        foreach ($this->getDomParser()->loadStr((string)$oRes->getBody())->find('.single-post .entry a img') as $oImg) {
+            $sFilename = $oImg->getAttribute('data-lazy-src');
+            if (!str_contains($sFilename, self::DOMAIN)) {
                 continue;
             }
             $sBasename = $this->getFolder() . DIRECTORY_SEPARATOR . str_pad($index++, 5, '0', STR_PAD_LEFT)
                 . '-' . basename($sFilename);
-            $aReturn[$sBasename] = $sFilename;
+            $aReturn[$sFilename] = $sBasename;
         }
-        array_shift($aReturn);
-        return $aReturn;
+        return array_flip($aReturn);
     }
 
     private function getFolder(): string

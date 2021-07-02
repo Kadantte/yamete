@@ -3,14 +3,19 @@
 namespace Yamete\Driver;
 
 use GuzzleHttp\Exception\GuzzleException;
-use PHPHtmlParser\Dom\AbstractNode;
+use PHPHtmlParser\Exceptions\ChildNotFoundException;
+use PHPHtmlParser\Exceptions\CircularException;
+use PHPHtmlParser\Exceptions\ContentLengthException;
+use PHPHtmlParser\Exceptions\LogicalException;
+use PHPHtmlParser\Exceptions\NotLoadedException;
+use PHPHtmlParser\Exceptions\StrictException;
 use Traversable;
 use Yamete\DriverAbstract;
 
 class ILikeComixCom extends DriverAbstract
 {
-    protected $aMatches = [];
     private const DOMAIN = 'ilikecomix.com';
+    protected array $aMatches = [];
 
     public function canHandle(): bool
     {
@@ -31,19 +36,24 @@ class ILikeComixCom extends DriverAbstract
     }
 
     /**
-     * @return array|string[]
+     * @return array
      * @throws GuzzleException
+     * @throws ChildNotFoundException
+     * @throws CircularException
+     * @throws ContentLengthException
+     * @throws LogicalException
+     * @throws NotLoadedException
+     * @throws StrictException
      */
     public function getDownloadables(): array
     {
         /**
          * @var Traversable $oPages
-         * @var AbstractNode $oImgs
          */
         $sUrl = 'https://' .
             implode('/', [$this->getDomain(), $this->aMatches['category'], $this->aMatches['album'], '']);
         $oRes = $this->getClient()->request('GET', $sUrl);
-        $oPages = $this->getDomParser()->load((string)$oRes->getBody())->find('figure > a');
+        $oPages = $this->getDomParser()->loadStr((string)$oRes->getBody())->find('figure > a');
         $aReturn = [];
         $index = 0;
         foreach ($oPages as $oLink) {

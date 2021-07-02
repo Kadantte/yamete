@@ -4,14 +4,19 @@ namespace Yamete\Driver;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
-use PHPHtmlParser\Dom\AbstractNode;
+use PHPHtmlParser\Exceptions\ChildNotFoundException;
+use PHPHtmlParser\Exceptions\CircularException;
+use PHPHtmlParser\Exceptions\ContentLengthException;
+use PHPHtmlParser\Exceptions\LogicalException;
+use PHPHtmlParser\Exceptions\NotLoadedException;
+use PHPHtmlParser\Exceptions\StrictException;
 use Traversable;
 use Yamete\DriverAbstract;
 
 class KissLoveNet extends DriverAbstract
 {
-    private $aMatches = [];
     private const DOMAIN = 'kisslove.net';
+    private array $aMatches = [];
 
     public function canHandle(): bool
     {
@@ -32,18 +37,22 @@ class KissLoveNet extends DriverAbstract
     }
 
     /**
-     * @return array|string[]
+     * @return array
      * @throws GuzzleException
+     * @throws ChildNotFoundException
+     * @throws CircularException
+     * @throws ContentLengthException
+     * @throws LogicalException
+     * @throws NotLoadedException
+     * @throws StrictException
      */
     public function getDownloadables(): array
     {
         /**
          * @var Traversable $oChapters
-         * @var AbstractNode $oChapter
-         * @var AbstractNode $oImg
          */
         $oRes = $this->getClient()->request('GET', $this->sUrl);
-        $oChapters = $this->getDomParser()->load((string)$oRes->getBody())->find('a.chapter');
+        $oChapters = $this->getDomParser()->loadStr((string)$oRes->getBody())->find('a.chapter');
         $aChapters = iterator_to_array($oChapters);
         krsort($aChapters);
         $index = 0;
@@ -51,7 +60,7 @@ class KissLoveNet extends DriverAbstract
         foreach ($aChapters as $oChapter) {
             $sHref = 'https://' . $this->getDomain() . '/' . $oChapter->getAttribute('href');
             $oRes = $this->getClient()->request('GET', $sHref);
-            foreach ($this->getDomParser()->load((string)$oRes->getBody())->find('img.chapter-img') as $oImg) {
+            foreach ($this->getDomParser()->loadStr((string)$oRes->getBody())->find('img.chapter-img') as $oImg) {
                 $sFilename = trim($oImg->getAttribute('data-original'));
                 $sBasename = $this->getFolder() . DIRECTORY_SEPARATOR . str_pad($index++, 5, '0', STR_PAD_LEFT)
                     . '-' . basename($sFilename);
@@ -61,13 +70,13 @@ class KissLoveNet extends DriverAbstract
         return $aReturn;
     }
 
-    protected function getFolder(): string
-    {
-        return implode(DIRECTORY_SEPARATOR, [self::DOMAIN, $this->aMatches['album']]);
-    }
-
     public function getClient(array $aOptions = []): Client
     {
         return parent::getClient(['headers' => ['Referer' => $this->sUrl]]);
+    }
+
+    protected function getFolder(): string
+    {
+        return implode(DIRECTORY_SEPARATOR, [self::DOMAIN, $this->aMatches['album']]);
     }
 }

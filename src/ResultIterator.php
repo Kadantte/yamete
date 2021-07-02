@@ -3,42 +3,28 @@
 namespace Yamete;
 
 use ArrayIterator;
+use Countable;
+use Iterator;
 
 /**
  * Class ResultIterator
  * @package Yamete
- * @method \ArrayIterator getInnerIterator
+ * @method ArrayIterator getInnerIterator
  */
-class ResultIterator implements \Iterator, \Countable
+class ResultIterator implements Iterator, Countable
 {
-    private $oDriver;
-    private $oIterator;
+    private DriverInterface $oDriver;
+    private ArrayIterator $oIterator;
 
     public function __construct(DriverInterface $oDriver)
     {
         $this->oDriver = $oDriver;
         $this->oIterator = new ArrayIterator($oDriver->getDownloadables());
-        $oDriver->clean();
     }
 
     public function current(): Downloadable
     {
         return new Downloadable($this->oDriver, $this->key(), $this->oIterator->current());
-    }
-
-    public function next(): void
-    {
-        $this->oIterator->next();
-    }
-
-    public function valid(): bool
-    {
-        return $this->oIterator->valid();
-    }
-
-    public function rewind(): void
-    {
-        $this->oIterator->rewind();
     }
 
     public function key(): string
@@ -54,6 +40,21 @@ class ResultIterator implements \Iterator, \Countable
             mkdir(dirname($sFileName), 0777, true);
         }
         return $sFileName;
+    }
+
+    public function next(): void
+    {
+        $this->oIterator->next();
+    }
+
+    public function valid(): bool
+    {
+        return $this->oIterator->valid();
+    }
+
+    public function rewind(): void
+    {
+        $this->oIterator->rewind();
     }
 
     public function count(): int

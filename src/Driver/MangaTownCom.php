@@ -4,14 +4,20 @@ namespace Yamete\Driver;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
-use PHPHtmlParser\Dom\AbstractNode;
+use PHPHtmlParser\Exceptions\ChildNotFoundException;
+use PHPHtmlParser\Exceptions\CircularException;
+use PHPHtmlParser\Exceptions\ContentLengthException;
+use PHPHtmlParser\Exceptions\LogicalException;
+use PHPHtmlParser\Exceptions\NotLoadedException;
+use PHPHtmlParser\Exceptions\StrictException;
+use PHPHtmlParser\Options;
 use Traversable;
 use Yamete\DriverAbstract;
 
 class MangaTownCom extends DriverAbstract
 {
-    private $aMatches = [];
     private const DOMAIN = 'mangatown.com';
+    private array $aMatches = [];
 
     public function canHandle(): bool
     {
@@ -28,16 +34,19 @@ class MangaTownCom extends DriverAbstract
     }
 
     /**
-     * @return array|string[]
+     * @return array
      * @throws GuzzleException
+     * @throws ChildNotFoundException
+     * @throws CircularException
+     * @throws ContentLengthException
+     * @throws LogicalException
+     * @throws NotLoadedException
+     * @throws StrictException
      */
     public function getDownloadables(): array
     {
         /**
          * @var Traversable $oChapters
-         * @var AbstractNode[] $aChapters
-         * @var AbstractNode[] $aPages
-         * @var AbstractNode $oImg
          */
         $sUrl = implode(
                 '/',
@@ -52,14 +61,14 @@ class MangaTownCom extends DriverAbstract
         $aReturn = [];
         $index = 0;
         $oChapters = $this->getDomParser()
-            ->load((string)$oRes->getBody(), ['cleanupInput' => false])
+            ->loadStr((string)$oRes->getBody(), (new Options)->setCleanupInput(false))
             ->find('ul.chapter_list a');
         $aChapters = iterator_to_array($oChapters);
         krsort($aChapters);
         foreach ($aChapters as $oLink) {
             $sChapUrl = 'https://www.' . self::DOMAIN . $oLink->getAttribute('href');
             $oRes = $this->getClient()->request('GET', $sChapUrl);
-            $oPages = $this->getDomParser()->load((string)$oRes->getBody())->find('.page_select select option');
+            $oPages = $this->getDomParser()->loadStr((string)$oRes->getBody())->find('.page_select select option');
             $aPages = iterator_to_array($oPages);
             $aPages = array_slice($aPages, 0, count($aPages) / 2);
             array_pop($aPages);
@@ -67,12 +76,12 @@ class MangaTownCom extends DriverAbstract
                 $sPageUrl = 'https://www.' . self::DOMAIN . $oPageUrl->getAttribute('value');
                 $oRes = $this->getClient()->request('GET', $sPageUrl);
                 $oImg = $this->getDomParser()
-                    ->load((string)$oRes->getBody())
+                    ->loadStr((string)$oRes->getBody())
                     ->find('#image')[0];
                 $sFilename = $oImg->getAttribute('src');
                 $iPos = strpos($sFilename, '?');
                 $sFilename = substr($sFilename, 0, $iPos ?: strlen($sFilename));
-                $sFilename = strpos('http', $sFilename) === false ? 'https:' . $sFilename : $sFilename;
+                $sFilename = !str_starts_with('http', $sFilename) ? 'https:' . $sFilename : $sFilename;
                 $sBasename = $this->getFolder() . DIRECTORY_SEPARATOR . str_pad($index++, 5, '0', STR_PAD_LEFT)
                     . '-' . basename($sFilename);
                 $aReturn[$sBasename] = $sFilename;

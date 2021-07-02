@@ -4,13 +4,18 @@ namespace Yamete\Driver;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
-use PHPHtmlParser\Dom\AbstractNode;
+use PHPHtmlParser\Exceptions\ChildNotFoundException;
+use PHPHtmlParser\Exceptions\CircularException;
+use PHPHtmlParser\Exceptions\ContentLengthException;
+use PHPHtmlParser\Exceptions\LogicalException;
+use PHPHtmlParser\Exceptions\NotLoadedException;
+use PHPHtmlParser\Exceptions\StrictException;
 use Yamete\DriverAbstract;
 
 class Palcomix extends DriverAbstract
 {
-    private $aMatches = [];
     private const DOMAIN = 'palcomix.com';
+    private array $aMatches = [];
 
     public function canHandle(): bool
     {
@@ -22,23 +27,25 @@ class Palcomix extends DriverAbstract
     }
 
     /**
-     * @return array|string[]
+     * @return array
      * @throws GuzzleException
+     * @throws ChildNotFoundException
+     * @throws CircularException
+     * @throws ContentLengthException
+     * @throws LogicalException
+     * @throws NotLoadedException
+     * @throws StrictException
      */
     public function getDownloadables(): array
     {
         $oRes = $this->getClient()
             ->request('GET', 'http://' . self::DOMAIN . '/' . $this->aMatches['album'] . '/index.html');
         $aReturn = [];
-        foreach ($this->getDomParser()->load((string)$oRes->getBody())->find('.thumbnail a') as $oLink) {
-            /** @var AbstractNode $oLink */
+        foreach ($this->getDomParser()->loadStr((string)$oRes->getBody())->find('.thumbnail a') as $oLink) {
             $sLink = 'http://' . self::DOMAIN . '/' . $this->aMatches['album'] . '/' . $oLink->getAttribute('href');
             $oRes = $this->getClient()->request('GET', $sLink);
-            foreach ($this->getDomParser()->load((string)$oRes->getBody())->find('img') as $oImg) {
-                /**
-                 * @var AbstractNode $oImg
-                 */
-                if (strpos($oImg->getAttribute('alt'), 'page') !== 0) {
+            foreach ($this->getDomParser()->loadStr((string)$oRes->getBody())->find('img') as $oImg) {
+                if (!str_starts_with($oImg->getAttribute('alt'), 'page')) {
                     continue;
                 }
                 $sFilename = 'http://' . self::DOMAIN . '/' . $this->aMatches['album']

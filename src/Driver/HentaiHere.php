@@ -3,13 +3,18 @@
 namespace Yamete\Driver;
 
 use GuzzleHttp\Exception\GuzzleException;
-use PHPHtmlParser\Dom\AbstractNode;
+use PHPHtmlParser\Exceptions\ChildNotFoundException;
+use PHPHtmlParser\Exceptions\CircularException;
+use PHPHtmlParser\Exceptions\ContentLengthException;
+use PHPHtmlParser\Exceptions\LogicalException;
+use PHPHtmlParser\Exceptions\NotLoadedException;
+use PHPHtmlParser\Exceptions\StrictException;
 use Yamete\DriverAbstract;
 
 class HentaiHere extends DriverAbstract
 {
-    private $aMatches = [];
     private const DOMAIN = 'hentaihere.com';
+    private array $aMatches = [];
 
     public function canHandle(): bool
     {
@@ -21,15 +26,21 @@ class HentaiHere extends DriverAbstract
     }
 
     /**
-     * @return array|string[]
+     * @return array
      * @throws GuzzleException
+     * @throws ChildNotFoundException
+     * @throws CircularException
+     * @throws ContentLengthException
+     * @throws LogicalException
+     * @throws NotLoadedException
+     * @throws StrictException
      */
     public function getDownloadables(): array
     {
         $this->sUrl = "https://" . self::DOMAIN . '/m/' . $this->aMatches['album'];
         $aReturn = [];
         $oRes = $this->getClient()->request('GET', $this->sUrl . '/1/1/');
-        $iNbChapter = count($this->getDomParser()->load((string)$oRes->getBody())->find('.dropdown ul.text-left li'));
+        $iNbChapter = count($this->getDomParser()->loadStr((string)$oRes->getBody())->find('.dropdown ul.text-left li'));
         $index = 0;
         for ($iChapter = 1; $iChapter <= $iNbChapter; $iChapter++) {
             $oRes = $this->getClient()->request('GET', $this->sUrl . '/' . $iChapter . '/1/');
@@ -40,8 +51,7 @@ class HentaiHere extends DriverAbstract
             }
             $sThumbsUrl = str_replace('/m/', '/thumbs/', $this->sUrl) . '/' . $aMatch['chapterName'];
             $oRes = $this->getClient()->request('GET', $sThumbsUrl);
-            foreach ($this->getDomParser()->load((string)$oRes->getBody())->find('.item img') as $oThumb) {
-                /* @var AbstractNode $oThumb */
+            foreach ($this->getDomParser()->loadStr((string)$oRes->getBody())->find('.item img') as $oThumb) {
                 $sFilename = strtr($oThumb->getAttribute('src'), ['/thumbnails' => '', 'tmb' => '']);
                 $sBasename = $this->getFolder() . DIRECTORY_SEPARATOR . str_pad(++$index, 5, '0', STR_PAD_LEFT)
                     . '-' . basename($sFilename);

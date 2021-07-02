@@ -3,13 +3,18 @@
 namespace Yamete\Driver;
 
 use GuzzleHttp\Exception\GuzzleException;
-use PHPHtmlParser\Dom\AbstractNode;
+use PHPHtmlParser\Exceptions\ChildNotFoundException;
+use PHPHtmlParser\Exceptions\CircularException;
+use PHPHtmlParser\Exceptions\ContentLengthException;
+use PHPHtmlParser\Exceptions\LogicalException;
+use PHPHtmlParser\Exceptions\NotLoadedException;
+use PHPHtmlParser\Exceptions\StrictException;
 use Yamete\DriverAbstract;
 
 class MangatoonMobi extends DriverAbstract
 {
-    private $aMatches = [];
     private const DOMAIN = 'mangatoon.mobi';
+    private array $aMatches = [];
 
     public function canHandle(): bool
     {
@@ -21,21 +26,23 @@ class MangatoonMobi extends DriverAbstract
     }
 
     /**
-     * @return array|string[]
+     * @return array
      * @throws GuzzleException
+     * @throws ChildNotFoundException
+     * @throws CircularException
+     * @throws ContentLengthException
+     * @throws LogicalException
+     * @throws NotLoadedException
+     * @throws StrictException
      */
     public function getDownloadables(): array
     {
-        /**
-         * @var AbstractNode $oLink
-         * @var AbstractNode $oImg
-         */
         $oRes = $this->getClient()->request('GET', 'https://' . self::DOMAIN . "/en/detail/{$this->aMatches['album']}");
         $aReturn = [];
-        $oLink = $this->getDomParser()->load((string)$oRes->getBody())->find('.top-button-wrap > a')[0];
+        $oLink = $this->getDomParser()->loadStr((string)$oRes->getBody())->find('.top-button-wrap > a')[0];
         $oRes = $this->getClient()->request('GET', 'https://' . self::DOMAIN . $oLink->getAttribute('href'));
         $index = 0;
-        foreach ($this->getDomParser()->load((string)$oRes->getBody())->find('.pictures img') as $oImg) {
+        foreach ($this->getDomParser()->loadStr((string)$oRes->getBody())->find('.pictures img') as $oImg) {
             $sFilename = $oImg->getAttribute('src');
             $sBasename = $this->getFolder() . DIRECTORY_SEPARATOR . str_pad($index++, 5, '0', STR_PAD_LEFT)
                 . '-' . basename(preg_replace('~\?(.*)$~', '', $sFilename));

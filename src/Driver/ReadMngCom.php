@@ -3,14 +3,19 @@
 namespace Yamete\Driver;
 
 use GuzzleHttp\Exception\GuzzleException;
-use PHPHtmlParser\Dom\AbstractNode;
+use PHPHtmlParser\Exceptions\ChildNotFoundException;
+use PHPHtmlParser\Exceptions\CircularException;
+use PHPHtmlParser\Exceptions\ContentLengthException;
+use PHPHtmlParser\Exceptions\LogicalException;
+use PHPHtmlParser\Exceptions\NotLoadedException;
+use PHPHtmlParser\Exceptions\StrictException;
 use Traversable;
 use Yamete\DriverAbstract;
 
 class ReadMngCom extends DriverAbstract
 {
-    private $aMatches = [];
     private const DOMAIN = 'readmng.com';
+    private array $aMatches = [];
 
     public function canHandle(): bool
     {
@@ -31,19 +36,23 @@ class ReadMngCom extends DriverAbstract
     }
 
     /**
-     * @return array|string[]
+     * @return array
      * @throws GuzzleException
+     * @throws ChildNotFoundException
+     * @throws CircularException
+     * @throws ContentLengthException
+     * @throws LogicalException
+     * @throws NotLoadedException
+     * @throws StrictException
      */
     public function getDownloadables(): array
     {
         /**
          * @var Traversable $oChapters
-         * @var AbstractNode $oChapter
-         * @var AbstractNode $oImg
          */
         $sUrl = 'https://www.' . implode('/', [$this->getDomain(), $this->aMatches['album'], '']);
         $oRes = $this->getClient()->request('GET', $sUrl);
-        $oChapters = $this->getDomParser()->load((string)$oRes->getBody())->find('.chp_lst > li > a');
+        $oChapters = $this->getDomParser()->loadStr((string)$oRes->getBody())->find('.chp_lst > li > a');
         $aChapters = iterator_to_array($oChapters);
         krsort($aChapters);
         $index = 0;
@@ -51,7 +60,7 @@ class ReadMngCom extends DriverAbstract
         foreach ($aChapters as $oChapter) {
             $sHref = $oChapter->getAttribute('href') . '/all-pages';
             $oRes = $this->getClient()->request('GET', $sHref);
-            foreach ($this->getDomParser()->load((string)$oRes->getBody())->find('.page_chapter img.img-responsive') as $oImg) {
+            foreach ($this->getDomParser()->loadStr((string)$oRes->getBody())->find('.page_chapter img.img-responsive') as $oImg) {
                 $sFilename = trim($oImg->getAttribute('src'));
                 $sBasename = $this->getFolder() . DIRECTORY_SEPARATOR . str_pad($index++, 5, '0', STR_PAD_LEFT)
                     . '-' . basename($sFilename);

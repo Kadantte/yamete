@@ -3,13 +3,18 @@
 namespace Yamete\Driver;
 
 use GuzzleHttp\Exception\GuzzleException;
-use PHPHtmlParser\Dom\AbstractNode;
+use PHPHtmlParser\Exceptions\ChildNotFoundException;
+use PHPHtmlParser\Exceptions\CircularException;
+use PHPHtmlParser\Exceptions\ContentLengthException;
+use PHPHtmlParser\Exceptions\LogicalException;
+use PHPHtmlParser\Exceptions\NotLoadedException;
+use PHPHtmlParser\Exceptions\StrictException;
 use Yamete\DriverAbstract;
 
 class HentaiFantasy extends DriverAbstract
 {
-    private $aMatches = [];
     private const DOMAIN = 'hentaifantasy.it';
+    private array $aMatches = [];
 
     public function canHandle(): bool
     {
@@ -21,18 +26,21 @@ class HentaiFantasy extends DriverAbstract
     }
 
     /**
-     * @return array|string[]
+     * @return array
      * @throws GuzzleException
+     * @throws ChildNotFoundException
+     * @throws CircularException
+     * @throws ContentLengthException
+     * @throws LogicalException
+     * @throws NotLoadedException
+     * @throws StrictException
      */
     public function getDownloadables(): array
     {
         $oRes = $this->getClient()->request('GET', $this->sUrl);
         $aReturn = [];
         $index = 0;
-        foreach ($this->getDomParser()->load((string)$oRes->getBody())->find('.group .element .title a') as $oLink) {
-            /**
-             * @var AbstractNode $oLink
-             */
+        foreach ($this->getDomParser()->loadStr((string)$oRes->getBody())->find('.group .element .title a') as $oLink) {
             $sLink = $oLink->getAttribute('href');
             $aMatches = [];
             $bFound = preg_match(
@@ -46,13 +54,9 @@ class HentaiFantasy extends DriverAbstract
             }
             $oRes = $this->getClient()->request('GET', $sLink);
             $sSelector = '.topbar_right .dropdown li a';
-            foreach ($this->getDomParser()->load((string)$oRes->getBody())->find($sSelector) as $oPage) {
-                /**
-                 * @var AbstractNode $oPage
-                 * @var AbstractNode $oImg
-                 */
+            foreach ($this->getDomParser()->loadStr((string)$oRes->getBody())->find($sSelector) as $oPage) {
                 $oRes = $this->getClient()->request('GET', $oPage->getAttribute('href'));
-                $oImg = $this->getDomParser()->load((string)$oRes->getBody())->find('img.open')[0];
+                $oImg = $this->getDomParser()->loadStr((string)$oRes->getBody())->find('img.open')[0];
                 $sFilename = $oImg->getAttribute('src');
                 $sPath = $this->getFolder() . DIRECTORY_SEPARATOR
                     . $aMatches['chapters'] . DIRECTORY_SEPARATOR

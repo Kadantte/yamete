@@ -3,14 +3,19 @@
 namespace Yamete\Driver;
 
 use GuzzleHttp\Exception\GuzzleException;
-use PHPHtmlParser\Dom\AbstractNode;
+use PHPHtmlParser\Exceptions\ChildNotFoundException;
+use PHPHtmlParser\Exceptions\CircularException;
+use PHPHtmlParser\Exceptions\ContentLengthException;
+use PHPHtmlParser\Exceptions\LogicalException;
+use PHPHtmlParser\Exceptions\NotLoadedException;
+use PHPHtmlParser\Exceptions\StrictException;
 use Traversable;
 use Yamete\DriverAbstract;
 
 class HentaiKai extends DriverAbstract
 {
-    private $aMatches = [];
     private const DOMAIN = 'hentaikai.com';
+    private array $aMatches = [];
 
     public function canHandle(): bool
     {
@@ -22,29 +27,40 @@ class HentaiKai extends DriverAbstract
     }
 
     /**
-     * @return array|string[]
+     * @return array
      * @throws GuzzleException
+     * @throws ChildNotFoundException
+     * @throws CircularException
+     * @throws ContentLengthException
+     * @throws LogicalException
+     * @throws NotLoadedException
+     * @throws StrictException
      */
     public function getDownloadables(): array
     {
         /**
          * @var Traversable $oChapters
-         * @var AbstractNode $oChapter
-         * @var AbstractNode $oImg
          */
         $sUrl = 'https://' . self::DOMAIN . '/' . $this->aMatches['album'] . '/';
         $oRes = $this->getClient()->request('GET', $sUrl);
-        $oChapters = $this->getDomParser()->load((string)$oRes->getBody())->find('.post-fotos a');
+        $oChapter = $this->getDomParser()->loadStr((string)$oRes->getBody())->find('.post-fotos a')[0];
         $index = 0;
         $aReturn = [];
-        foreach ($oChapters as $oChapter) {
-            $oRes = $this->getClient()->request('GET', $oChapter->getAttribute('href'));
-            foreach ($this->getDomParser()->load((string)$oRes->getBody())->find('.galeria-foto img') as $oImg) {
-                $sFilename = $oImg->getAttribute('src');
-                $sBasename = $this->getFolder() . DIRECTORY_SEPARATOR . str_pad($index++, 5, '0', STR_PAD_LEFT)
-                    . '-' . basename($sFilename);
-                $aReturn[$sBasename] = $sFilename;
-            }
+        $oRes = $this->getClient()->request('GET', $oChapter->getAttribute('href'));
+        $sBody = (string)$oRes->getBody();
+        $sRegExp = '~body:after{content:([^;]+);display:none}~';
+        $aFound = [];
+        if (!preg_match($sRegExp, $sBody, $aFound)) {
+            return [];
+        }
+        $aMatches = [];
+        if (!preg_match_all('~url\(([^)]+)\)~', $aFound[1], $aMatches)) {
+            return [];
+        }
+        foreach ($aMatches[1] as $sFilename) {
+            $sBasename = $this->getFolder() . DIRECTORY_SEPARATOR . str_pad($index++, 5, '0', STR_PAD_LEFT)
+                . '-' . basename($sFilename);
+            $aReturn[$sBasename] = $sFilename;
         }
         return $aReturn;
     }

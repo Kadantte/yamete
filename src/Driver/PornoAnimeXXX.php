@@ -3,13 +3,19 @@
 namespace Yamete\Driver;
 
 use GuzzleHttp\Exception\GuzzleException;
-use PHPHtmlParser\Dom\AbstractNode;
+use PHPHtmlParser\Exceptions\ChildNotFoundException;
+use PHPHtmlParser\Exceptions\CircularException;
+use PHPHtmlParser\Exceptions\ContentLengthException;
+use PHPHtmlParser\Exceptions\LogicalException;
+use PHPHtmlParser\Exceptions\NotLoadedException;
+use PHPHtmlParser\Exceptions\StrictException;
+use PHPHtmlParser\Options;
 use Yamete\DriverAbstract;
 
 class PornoAnimeXXX extends DriverAbstract
 {
-    private $aMatches = [];
     private const DOMAIN = 'pornoanimexxx.com';
+    private array $aMatches = [];
 
     public function canHandle(): bool
     {
@@ -21,21 +27,26 @@ class PornoAnimeXXX extends DriverAbstract
     }
 
     /**
-     * @return array|string[]
+     * @return array
      * @throws GuzzleException
+     * @throws ChildNotFoundException
+     * @throws CircularException
+     * @throws ContentLengthException
+     * @throws LogicalException
+     * @throws NotLoadedException
+     * @throws StrictException
      */
     public function getDownloadables(): array
     {
         $oRes = $this->getClient()->request('GET', $this->sUrl);
         $aReturn = [];
         $index = 0;
-        $oImgList = $this->getDomParser()->load((string)$oRes->getBody(), ['cleanupInput' => false])->find('img');
+        $oImgList = $this->getDomParser()
+            ->loadStr((string)$oRes->getBody(), (new Options)->setCleanupInput(false))
+            ->find('img');
         foreach ($oImgList as $oImg) {
-            /**
-             * @var AbstractNode $oImg
-             */
             $sFilename = $oImg->getAttribute('src');
-            if (strpos($oImg->getAttribute('class'), 'size-full') === false) {
+            if (!str_contains($oImg->getAttribute('class'), 'size-full')) {
                 continue;
             }
             $sBasename = $this->getFolder() . DIRECTORY_SEPARATOR . str_pad(++$index, 5, '0', STR_PAD_LEFT)

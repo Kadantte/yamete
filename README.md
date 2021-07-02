@@ -7,7 +7,7 @@ Yamete - Hentai downloader in PHP CLI - Easy PHP Site downloader
 [![Docker Pulls](https://img.shields.io/docker/pulls/jaymoulin/yamete.svg)](https://hub.docker.com/r/jaymoulin/yamete/)
 [![Docker stars](https://img.shields.io/docker/stars/jaymoulin/yamete.svg)](https://hub.docker.com/r/jaymoulin/yamete/)
 [![PayPal donation](https://github.com/jaymoulin/jaymoulin.github.io/raw/master/ppl.png "PayPal donation")](https://www.paypal.me/jaymoulin)
-[![Buy me a coffee](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png "Buy me a coffee")](https://www.buymeacoffee.com/3Yu8ajd7W)
+[![Buy me a coffee](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png "Buy me a coffee")](https://www.buymeacoffee.com/jaymoulin)
 [![Become a Patron](https://badgen.net/badge/become/a%20patron/F96854 "Become a Patron")](https://patreon.com/jaymoulin)
 
 DISCLAIMER: As-of 2021, this product does not have a free support team anymore. If you want this product to be maintained, please support on Patreon.
@@ -202,7 +202,6 @@ Here's is the list of supported sites for now:
  * hentaihere.com
  * 9hentai.ru
  * mintmanga.live
- * hentai.cafe
  * hentai-archive.net
  * hentai-ita.net
  * sankakucomplex.com
@@ -214,7 +213,6 @@ Here's is the list of supported sites for now:
  * hentaihand.com
  * poringa.com
  * ver-comics-porno.com
- * sexcomic.org
  * hentaicloud.com
  * hentaigratis.biz
  * doujinhentai.net
@@ -254,7 +252,6 @@ Here's is the list of supported sites for now:
  * manytoon.com
  * mysexgamer.com
  * lolhentai.net
- * kisshentaitv.com
  * hmangasearcher.com
  * mangaowl.com
  * hentaishark.com
@@ -274,7 +271,6 @@ Here's is the list of supported sites for now:
  * milftoon.xxx
  * ilikecomix.com
  * yiffer.xyz
- * porncomix.one
  * avangard-iv.ru
  * sexporncomics.com
  * eggporncomics.com
@@ -306,7 +302,6 @@ Here's is the list of supported sites for now:
  * mangaeden.com
  * mangahere.cc
  * manganelo.com
- * mangahub.io
  * komikstation.com
  * hennojin.com
  * imgbox.com
@@ -318,7 +313,6 @@ Here's is the list of supported sites for now:
  * mangabob.com
  * manganeloteam.com
  * mangatx.com
- * hentainexus.com
  * toomics.com
  * 365manga.com
  * mangainn.net
@@ -347,7 +341,6 @@ Here's is the list of supported sites for now:
  * heaventoon.com
  * readfreecomics.com
  * mangaread.co
- * webtoon.xyz
  * porncomixinfo.net
  * funmanga.com
  * mangakakalots.com

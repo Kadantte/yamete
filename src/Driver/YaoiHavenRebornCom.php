@@ -3,14 +3,19 @@
 namespace Yamete\Driver;
 
 use GuzzleHttp\Exception\GuzzleException;
-use PHPHtmlParser\Dom\AbstractNode;
+use PHPHtmlParser\Exceptions\ChildNotFoundException;
+use PHPHtmlParser\Exceptions\CircularException;
+use PHPHtmlParser\Exceptions\ContentLengthException;
+use PHPHtmlParser\Exceptions\LogicalException;
+use PHPHtmlParser\Exceptions\NotLoadedException;
+use PHPHtmlParser\Exceptions\StrictException;
 use Traversable;
 use Yamete\DriverAbstract;
 
 class YaoiHavenRebornCom extends DriverAbstract
 {
-    private $aMatches = [];
     private const DOMAIN = 'yaoihavenreborn.com';
+    private array $aMatches = [];
 
     public function canHandle(): bool
     {
@@ -22,15 +27,19 @@ class YaoiHavenRebornCom extends DriverAbstract
     }
 
     /**
-     * @return array|string[]
+     * @return array
      * @throws GuzzleException
+     * @throws ChildNotFoundException
+     * @throws CircularException
+     * @throws ContentLengthException
+     * @throws LogicalException
+     * @throws NotLoadedException
+     * @throws StrictException
      */
     public function getDownloadables(): array
     {
         /**
          * @var Traversable $oPages
-         * @var AbstractNode $oLink
-         * @var AbstractNode $oImg
          */
         $sUrl = implode(
             '/',
@@ -42,7 +51,7 @@ class YaoiHavenRebornCom extends DriverAbstract
             ]
         );
         $oRes = $this->getClient()->request('GET', $sUrl);
-        $oPages = $this->getDomParser()->load((string)$oRes->getBody())->find('img.img-fluid');
+        $oPages = $this->getDomParser()->loadStr((string)$oRes->getBody())->find('img.img-fluid');
         $index = 0;
         $aReturn = [];
         foreach ($oPages as $oLink) {

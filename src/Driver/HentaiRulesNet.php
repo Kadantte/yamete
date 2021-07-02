@@ -3,13 +3,18 @@
 namespace Yamete\Driver;
 
 use GuzzleHttp\Exception\GuzzleException;
-use PHPHtmlParser\Dom\AbstractNode;
+use PHPHtmlParser\Exceptions\ChildNotFoundException;
+use PHPHtmlParser\Exceptions\CircularException;
+use PHPHtmlParser\Exceptions\ContentLengthException;
+use PHPHtmlParser\Exceptions\LogicalException;
+use PHPHtmlParser\Exceptions\NotLoadedException;
+use PHPHtmlParser\Exceptions\StrictException;
 use Yamete\DriverAbstract;
 
 if (!class_exists(HentaiRulesNet::class)) {
     class HentaiRulesNet extends DriverAbstract
     {
-        private $aMatches = [];
+        private array $aMatches = [];
         private const DOMAIN = 'hentairules.net';
 
         public function canHandle(): bool
@@ -23,15 +28,21 @@ if (!class_exists(HentaiRulesNet::class)) {
         }
 
         /**
-         * @return array|string[]
+         * @return array
          * @throws GuzzleException
+         * @throws ChildNotFoundException
+         * @throws CircularException
+         * @throws ContentLengthException
+         * @throws LogicalException
+         * @throws NotLoadedException
+         * @throws StrictException
          */
         public function getDownloadables(): array
         {
             $oRes = $this->getClient()->request('GET', $this->sUrl);
             $aReturn = [];
             $index = 0;
-            $iNbPage = count($this->getDomParser()->load((string)$oRes->getBody())->find('.navigationBar > a')) + 1;
+            $iNbPage = count($this->getDomParser()->loadStr((string)$oRes->getBody())->find('.navigationBar > a')) + 1;
             if (!$iNbPage) {
                 $iNbPage = 1;
             }
@@ -39,14 +50,10 @@ if (!class_exists(HentaiRulesNet::class)) {
             for ($page = 0; $page < $iNbPage; $page++) {
                 $sUrl = $sBaseUrl . '/index.php?/category/' . $this->aMatches['album'] . '/start-' . $page . '00';
                 $oRes = $this->getClient()->request('GET', $sUrl);
-                foreach ($this->getDomParser()->load((string)$oRes->getBody())->find('#thumbnails li a') as $oLink) {
-                    /**
-                     * @var AbstractNode $oLink
-                     * @var AbstractNode $oImg
-                     */
+                foreach ($this->getDomParser()->loadStr((string)$oRes->getBody())->find('#thumbnails li a') as $oLink) {
                     $sUrl = $sBaseUrl . '/' . $oLink->getAttribute('href');
                     $oRes = $this->getClient()->request('GET', $sUrl);
-                    $oImg = $this->getDomParser()->load((string)$oRes->getBody())->find('#theImage img')[0];
+                    $oImg = $this->getDomParser()->loadStr((string)$oRes->getBody())->find('#theImage img')[0];
                     $sFilename = $sBaseUrl . '/' . $oImg->getAttribute('data-cfsrc');
                     $sBasename = $this->getFolder() . DIRECTORY_SEPARATOR . str_pad($index++, 5, '0', STR_PAD_LEFT)
                         . '-' . basename($sFilename);

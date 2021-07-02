@@ -3,13 +3,18 @@
 namespace Yamete\Driver;
 
 use GuzzleHttp\Exception\GuzzleException;
-use PHPHtmlParser\Dom\AbstractNode;
+use PHPHtmlParser\Exceptions\ChildNotFoundException;
+use PHPHtmlParser\Exceptions\CircularException;
+use PHPHtmlParser\Exceptions\ContentLengthException;
+use PHPHtmlParser\Exceptions\LogicalException;
+use PHPHtmlParser\Exceptions\NotLoadedException;
+use PHPHtmlParser\Exceptions\StrictException;
 use Yamete\DriverAbstract;
 
 class Comicsmanics extends DriverAbstract
 {
-    private $aMatches = [];
     private const DOMAIN = 'comicsmanics.com';
+    private array $aMatches = [];
 
     public function canHandle(): bool
     {
@@ -21,8 +26,14 @@ class Comicsmanics extends DriverAbstract
     }
 
     /**
-     * @return array|string[]
+     * @return array
      * @throws GuzzleException
+     * @throws ChildNotFoundException
+     * @throws CircularException
+     * @throws ContentLengthException
+     * @throws LogicalException
+     * @throws NotLoadedException
+     * @throws StrictException
      */
     public function getDownloadables(): array
     {
@@ -30,6 +41,8 @@ class Comicsmanics extends DriverAbstract
         $aReturn = [];
         $index = 0;
         $aRules = [
+            '.post-texto img.alignnone',
+            '.single-post img.alignnone',
             '.entry-content img.alignnone',
             '.post-texto img.wp-post-image',
             'img.size-large'
@@ -38,10 +51,7 @@ class Comicsmanics extends DriverAbstract
             if ($index) {
                 continue;
             }
-            foreach ($this->getDomParser()->load((string)$oRes->getBody())->find($sRule) as $oImg) {
-                /**
-                 * @var AbstractNode $oImg
-                 */
+            foreach ($this->getDomParser()->loadStr((string)$oRes->getBody())->find($sRule) as $oImg) {
                 $sFilename = $oImg->getAttribute('src');
                 $sFilename = preg_match('~^https?://~', $sFilename)
                     ? str_replace('https://', 'http://', $sFilename)

@@ -3,14 +3,19 @@
 namespace Yamete\Driver;
 
 use GuzzleHttp\Exception\GuzzleException;
-use PHPHtmlParser\Dom\AbstractNode;
+use PHPHtmlParser\Exceptions\ChildNotFoundException;
+use PHPHtmlParser\Exceptions\CircularException;
+use PHPHtmlParser\Exceptions\ContentLengthException;
+use PHPHtmlParser\Exceptions\LogicalException;
+use PHPHtmlParser\Exceptions\NotLoadedException;
+use PHPHtmlParser\Exceptions\StrictException;
 use Traversable;
 use Yamete\DriverAbstract;
 
 class AllPornComicCom extends DriverAbstract
 {
-    private $aMatches = [];
     private const DOMAIN = 'allporncomic.com';
+    private array $aMatches = [];
 
     public function canHandle(): bool
     {
@@ -31,27 +36,31 @@ class AllPornComicCom extends DriverAbstract
     }
 
     /**
-     * @return array|string[]
+     * @return array
      * @throws GuzzleException
+     * @throws ChildNotFoundException
+     * @throws CircularException
+     * @throws ContentLengthException
+     * @throws LogicalException
+     * @throws NotLoadedException
+     * @throws StrictException
      */
     public function getDownloadables(): array
     {
         /**
          * @var Traversable $oChapters
-         * @var AbstractNode $oChapter
-         * @var AbstractNode $oImg
          */
         $sUrl = 'https://' .
             implode('/', [$this->getDomain(), $this->aMatches['category'], $this->aMatches['album'], '']);
         $oRes = $this->getClient()->request('GET', $sUrl);
-        $oChapters = $this->getDomParser()->load((string)$oRes->getBody())->find('li.wp-manga-chapter > a');
+        $oChapters = $this->getDomParser()->loadStr((string)$oRes->getBody())->find('li.wp-manga-chapter > a');
         $aChapters = iterator_to_array($oChapters);
         krsort($aChapters);
         $index = 0;
         $aReturn = [];
         foreach ($aChapters as $oChapter) {
             $oRes = $this->getClient()->request('GET', $oChapter->getAttribute('href'));
-            foreach ($this->getDomParser()->load((string)$oRes->getBody())->find('.wp-manga-chapter-img') as $oImg) {
+            foreach ($this->getDomParser()->loadStr((string)$oRes->getBody())->find('.wp-manga-chapter-img') as $oImg) {
                 $sFilename = trim($oImg->getAttribute('src'));
                 $iPos = strpos($sFilename, '?');
                 $sFilename = substr($sFilename, 0, $iPos);

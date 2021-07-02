@@ -4,14 +4,26 @@ namespace YameteTests\Driver;
 
 
 use GuzzleHttp\Exception\GuzzleException;
+use PHPHtmlParser\Exceptions\ChildNotFoundException;
+use PHPHtmlParser\Exceptions\CircularException;
+use PHPHtmlParser\Exceptions\ContentLengthException;
+use PHPHtmlParser\Exceptions\LogicalException;
+use PHPHtmlParser\Exceptions\NotLoadedException;
+use PHPHtmlParser\Exceptions\StrictException;
 use PHPUnit\Framework\TestCase;
 
 class HeavenToonCom extends TestCase
 {
-    private const NUMBER_OF_PAGE = 323;
+    private const NUMBER_OF_PAGE = 1164;
 
     /**
      * @throws GuzzleException
+     * @throws ChildNotFoundException
+     * @throws CircularException
+     * @throws ContentLengthException
+     * @throws LogicalException
+     * @throws NotLoadedException
+     * @throws StrictException
      */
     public function testDownloadFromSummary()
     {
@@ -24,6 +36,12 @@ class HeavenToonCom extends TestCase
 
     /**
      * @throws GuzzleException
+     * @throws ChildNotFoundException
+     * @throws CircularException
+     * @throws ContentLengthException
+     * @throws LogicalException
+     * @throws NotLoadedException
+     * @throws StrictException
      */
     public function testDownloadFromChapter()
     {

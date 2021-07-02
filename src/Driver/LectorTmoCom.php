@@ -4,14 +4,19 @@ namespace Yamete\Driver;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
-use PHPHtmlParser\Dom\AbstractNode;
+use PHPHtmlParser\Exceptions\ChildNotFoundException;
+use PHPHtmlParser\Exceptions\CircularException;
+use PHPHtmlParser\Exceptions\ContentLengthException;
+use PHPHtmlParser\Exceptions\LogicalException;
+use PHPHtmlParser\Exceptions\NotLoadedException;
+use PHPHtmlParser\Exceptions\StrictException;
 use Traversable;
 use Yamete\DriverAbstract;
 
 class LectorTmoCom extends DriverAbstract
 {
-    private $aMatches = [];
     private const DOMAIN = 'lectortmo.com';
+    private array $aMatches = [];
 
     public function canHandle(): bool
     {
@@ -23,27 +28,22 @@ class LectorTmoCom extends DriverAbstract
     }
 
     /**
-     * Where to download
-     * @return string
-     */
-    private function getFolder(): string
-    {
-        return implode(DIRECTORY_SEPARATOR, [self::DOMAIN, $this->aMatches['album']]);
-    }
-
-    /**
-     * @return array|string[]
+     * @return array
      * @throws GuzzleException
+     * @throws ChildNotFoundException
+     * @throws CircularException
+     * @throws ContentLengthException
+     * @throws LogicalException
+     * @throws NotLoadedException
+     * @throws StrictException
      */
     public function getDownloadables(): array
     {
         /**
          * @var Traversable $oChapters
-         * @var AbstractNode $oLink
-         * @var AbstractNode $oImage
          */
         $oResult = $this->getClient()->request('GET', $this->sUrl);
-        $oChapters = $this->getDomParser()->load((string)$oResult->getBody())->find('.list-group-item a.btn-default');
+        $oChapters = $this->getDomParser()->loadStr((string)$oResult->getBody())->find('.list-group-item a.btn-default');
         $aChapters = iterator_to_array($oChapters);
         krsort($aChapters);
         $aReturn = [];
@@ -51,14 +51,14 @@ class LectorTmoCom extends DriverAbstract
         foreach ($aChapters as $oLink) {
             $oResult = $this->getClient()->request('GET', $oLink->getAttribute('href'));
             $sBody = (string)$oResult->getBody();
-            $oPages = $this->getDomParser()->load($sBody)->find('#viewer-pages-select option');
+            $oPages = $this->getDomParser()->loadStr($sBody)->find('#viewer-pages-select option');
             $aMatches = [];
             preg_match('~copyToClipboard\(\'([^\']+)\'~', $sBody, $aMatches);
             $sUrl = $aMatches[1];
             foreach ($oPages as $oPage) {
                 usleep(20);
                 $oResult = $this->getClient()->request('GET', $sUrl . '/' . $oPage->getAttribute('value'));
-                $oImage = $this->getDomParser()->load((string)$oResult->getBody())->find('#main-container img')[0];
+                $oImage = $this->getDomParser()->loadStr((string)$oResult->getBody())->find('#main-container img')[0];
                 $sFilename = $oImage->getAttribute('src');
                 $sBasename = $this->getFolder() . DIRECTORY_SEPARATOR . str_pad($index++, 5, '0', STR_PAD_LEFT)
                     . '-' . basename($sFilename);
@@ -71,6 +71,15 @@ class LectorTmoCom extends DriverAbstract
     public function getClient(array $aOptions = []): Client
     {
         return parent::getClient(['headers' => ['User-Agent' => self::USER_AGENT]]);
+    }
+
+    /**
+     * Where to download
+     * @return string
+     */
+    private function getFolder(): string
+    {
+        return implode(DIRECTORY_SEPARATOR, [self::DOMAIN, $this->aMatches['album']]);
     }
 
 

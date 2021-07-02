@@ -3,43 +3,50 @@
 namespace Yamete\Driver;
 
 use GuzzleHttp\Exception\GuzzleException;
-use PHPHtmlParser\Dom\AbstractNode;
+use PHPHtmlParser\Exceptions\ChildNotFoundException;
+use PHPHtmlParser\Exceptions\CircularException;
+use PHPHtmlParser\Exceptions\ContentLengthException;
+use PHPHtmlParser\Exceptions\LogicalException;
+use PHPHtmlParser\Exceptions\NotLoadedException;
+use PHPHtmlParser\Exceptions\StrictException;
 use Yamete\DriverAbstract;
 
 class EHentai extends DriverAbstract
 {
-    private $aMatches = [];
     private const DOMAIN = 'e-hentai.org';
+    private array $aMatches = [];
 
     public function canHandle(): bool
     {
         return (bool)preg_match(
-            '~^https?://' . strtr(self::DOMAIN, ['.' => '\.', '-' => '\-']) . '/(?<mode>s|g)/([^/]+)/(?<album>[^/-]+)~',
+            '~^https?://' . strtr(self::DOMAIN, ['.' => '\.', '-' => '\-']) . '/(?<mode>[sg])/([^/]+)/(?<album>[^/-]+)~',
             $this->sUrl,
             $this->aMatches
         );
     }
 
     /**
-     * @return array|string[]
+     * @return array
      * @throws GuzzleException
+     * @throws ChildNotFoundException
+     * @throws CircularException
+     * @throws ContentLengthException
+     * @throws LogicalException
+     * @throws NotLoadedException
+     * @throws StrictException
      */
     public function getDownloadables(): array
     {
         $oRes = $this->getClient()->request('GET', $this->sUrl);
         if ($this->aMatches['mode'] == 's') {
-            $sHref = $this->getDomParser()->load((string)$oRes->getBody())->find('#i5 a')[0]->getAttribute('href');
+            $sHref = $this->getDomParser()->loadStr((string)$oRes->getBody())->find('#i5 a')[0]->getAttribute('href');
             $oRes = $this->getClient()->request('GET', $sHref);
         }
         $aReturn = [];
         $index = 0;
-        foreach ($this->getDomParser()->load((string)$oRes->getBody())->find('.gdtm a') as $oLink) {
-            /**
-             * @var AbstractNode $oLink
-             * @var AbstractNode $oImg
-             */
+        foreach ($this->getDomParser()->loadStr((string)$oRes->getBody())->find('.gdtm a') as $oLink) {
             $oImg = $this->getDomParser()
-                ->load((string)$this->getClient()->request('GET', $oLink->getAttribute('href'))->getBody())
+                ->loadStr((string)$this->getClient()->request('GET', $oLink->getAttribute('href'))->getBody())
                 ->find('#i3 img');
             $sFilename = $oImg->getAttribute('src');
             $sPath = $this->getFolder() . DIRECTORY_SEPARATOR

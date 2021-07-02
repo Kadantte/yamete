@@ -4,14 +4,19 @@ namespace Yamete\Driver;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
-use PHPHtmlParser\Dom\AbstractNode;
+use PHPHtmlParser\Exceptions\ChildNotFoundException;
+use PHPHtmlParser\Exceptions\CircularException;
+use PHPHtmlParser\Exceptions\ContentLengthException;
+use PHPHtmlParser\Exceptions\LogicalException;
+use PHPHtmlParser\Exceptions\NotLoadedException;
+use PHPHtmlParser\Exceptions\StrictException;
 use Traversable;
 
 class ManganeloTeamCom extends IsekaiScanCom
 {
     private const DOMAIN = 'manganeloteam.com';
 
-    protected $aMatches = [];
+    protected array $aMatches = [];
 
     public function canHandle(): bool
     {
@@ -31,36 +36,21 @@ class ManganeloTeamCom extends IsekaiScanCom
     }
 
     /**
-     * Where to download
-     * @return string
-     */
-    protected function getFolder(): string
-    {
-        return implode(DIRECTORY_SEPARATOR, [$this->getDomain(), $this->aMatches['album']]);
-    }
-
-    /**
-     * Rule to get all chapters links
-     * @return string
-     */
-    protected function getChapterRule(): string
-    {
-        return '.chapter a';
-    }
-
-    /**
-     * @return array|string[]
+     * @return array
      * @throws GuzzleException
+     * @throws ChildNotFoundException
+     * @throws CircularException
+     * @throws ContentLengthException
+     * @throws LogicalException
+     * @throws NotLoadedException
+     * @throws StrictException
      */
     public function getDownloadables(): array
     {
         /**
          * @var Traversable $oChapters
-         * @var AbstractNode $oChapter
-         * @var AbstractNode $oImg
          */
-        $sUrl = 'https://' . $this->getDomain() . '/' . $this->aMatches['category']
-            . '/' . $this->aMatches['album'] . '/';
+        $sUrl = 'https://' . $this->getDomain() . '/manga/' . $this->aMatches['album'] . '/';
         $oRes = $this->getClient()->request('GET', $sUrl);
         $aMatches = [];
         if (!preg_match('~"manga_id":"([0-9]+)"~', (string)$oRes->getBody(), $aMatches)) {
@@ -80,7 +70,7 @@ class ManganeloTeamCom extends IsekaiScanCom
                     ],
                 ]
             )->getBody();
-        $oChapters = $this->getDomParser()->load($sResponse)->find('.wp-manga-chapter a');
+        $oChapters = $this->getDomParser()->loadStr($sResponse)->find('.wp-manga-chapter a');
         $aChapters = iterator_to_array($oChapters);
         krsort($aChapters);
         $aReturn = [];
@@ -101,13 +91,31 @@ class ManganeloTeamCom extends IsekaiScanCom
         return $aReturn;
     }
 
-    protected function getRegexp(): string
-    {
-        return '~data-src="([^"]+)" class="wp-manga~';
-    }
-
     public function getClient(array $aOptions = []): Client
     {
         return parent::getClient(['headers' => ['Referer' => $this->sUrl]]);
+    }
+
+    /**
+     * Where to download
+     * @return string
+     */
+    protected function getFolder(): string
+    {
+        return implode(DIRECTORY_SEPARATOR, [$this->getDomain(), $this->aMatches['album']]);
+    }
+
+    /**
+     * Rule to get all chapters links
+     * @return string
+     */
+    protected function getChapterRule(): string
+    {
+        return '.chapter a';
+    }
+
+    protected function getRegexp(): string
+    {
+        return '~data-src="([^"]+)" class="wp-manga~';
     }
 }

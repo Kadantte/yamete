@@ -5,14 +5,19 @@ namespace Yamete\Driver;
 use GuzzleHttp\Client;
 use GuzzleHttp\Cookie\FileCookieJar;
 use GuzzleHttp\Exception\GuzzleException;
-use PHPHtmlParser\Dom\AbstractNode;
+use PHPHtmlParser\Exceptions\ChildNotFoundException;
+use PHPHtmlParser\Exceptions\CircularException;
+use PHPHtmlParser\Exceptions\ContentLengthException;
+use PHPHtmlParser\Exceptions\LogicalException;
+use PHPHtmlParser\Exceptions\NotLoadedException;
+use PHPHtmlParser\Exceptions\StrictException;
 use Traversable;
 use Yamete\DriverAbstract;
 
 class Taadd extends DriverAbstract
 {
-    private $aMatches = [];
     private const DOMAIN = 'taadd.com';
+    private array $aMatches = [];
 
     public function canHandle(): bool
     {
@@ -24,23 +29,19 @@ class Taadd extends DriverAbstract
     }
 
     /**
-     * Where to download
-     * @return string
-     */
-    private function getFolder(): string
-    {
-        return implode(DIRECTORY_SEPARATOR, [self::DOMAIN, $this->aMatches['album']]);
-    }
-
-    /**
-     * @return array|string[]
+     * @return array
      * @throws GuzzleException
+     * @throws ChildNotFoundException
+     * @throws CircularException
+     * @throws ContentLengthException
+     * @throws LogicalException
+     * @throws NotLoadedException
+     * @throws StrictException
      */
     public function getDownloadables(): array
     {
         /**
          * @var Traversable $oChapters
-         * @var AbstractNode $oImage
          */
         $sUrl = $this->sUrl . (strpos($this->sUrl, '?') ? '&' : '?') . 'waring=1';
         $aMatches = [];
@@ -54,10 +55,10 @@ class Taadd extends DriverAbstract
         $index = 0;
         foreach ($aChapters as $sLink) {
             $oResult = $this->getClient()->request('GET', 'https://' . self::DOMAIN . $sLink);
-            $oPages = $this->getDomParser()->load((string)$oResult->getBody())->find('#page option');
+            $oPages = $this->getDomParser()->loadStr((string)$oResult->getBody())->find('#page option');
             foreach ($oPages as $oPage) {
                 $oResult = $this->getClient()->request('GET', $oPage->getAttribute('value'));
-                $oImage = $this->getDomParser()->load((string)$oResult->getBody())->find('#comicpic')[0];
+                $oImage = $this->getDomParser()->loadStr((string)$oResult->getBody())->find('#comicpic')[0];
                 $sFilename = $oImage->getAttribute('src');
                 $sBasename = $this->getFolder() . DIRECTORY_SEPARATOR . str_pad($index++, 5, '0', STR_PAD_LEFT)
                     . '-' . basename($sFilename);
@@ -75,5 +76,14 @@ class Taadd extends DriverAbstract
                 'headers' => ['User-Agent' => self::USER_AGENT],
             ]
         );
+    }
+
+    /**
+     * Where to download
+     * @return string
+     */
+    private function getFolder(): string
+    {
+        return implode(DIRECTORY_SEPARATOR, [self::DOMAIN, $this->aMatches['album']]);
     }
 }

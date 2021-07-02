@@ -3,18 +3,18 @@
 namespace Yamete\Driver;
 
 use GuzzleHttp\Exception\GuzzleException;
-use PHPHtmlParser\Dom\AbstractNode;
+use PHPHtmlParser\Exceptions\ChildNotFoundException;
+use PHPHtmlParser\Exceptions\CircularException;
+use PHPHtmlParser\Exceptions\ContentLengthException;
+use PHPHtmlParser\Exceptions\LogicalException;
+use PHPHtmlParser\Exceptions\NotLoadedException;
+use PHPHtmlParser\Exceptions\StrictException;
 use Yamete\DriverAbstract;
 
 class TheYiffGallery extends DriverAbstract
 {
-    private $aMatches = [];
     private const DOMAIN = 'theyiffgallery.com';
-
-    protected function getDomain(): string
-    {
-        return self::DOMAIN;
-    }
+    private array $aMatches = [];
 
     public function canHandle(): bool
     {
@@ -26,9 +26,20 @@ class TheYiffGallery extends DriverAbstract
         );
     }
 
+    protected function getDomain(): string
+    {
+        return self::DOMAIN;
+    }
+
     /**
-     * @return array|string[]
+     * @return array
      * @throws GuzzleException
+     * @throws ChildNotFoundException
+     * @throws CircularException
+     * @throws ContentLengthException
+     * @throws LogicalException
+     * @throws NotLoadedException
+     * @throws StrictException
      */
     public function getDownloadables(): array
     {
@@ -36,15 +47,11 @@ class TheYiffGallery extends DriverAbstract
         $sBody = (string)$oRes->getBody();
         $aReturn = [];
         $index = 0;
-        foreach ($this->getDomParser()->load($sBody)->find('.thumbnails li a') as $oLink) {
-            /**
-             * @var AbstractNode $oLink
-             * @var AbstractNode $oImg
-             */
+        foreach ($this->getDomParser()->loadStr($sBody)->find('.thumbnails li a') as $oLink) {
             $sUrl = 'https://' . $this->getDomain() . '/' . $oLink->getAttribute('href');
             $oRes = $this->getClient()->request('GET', $sUrl);
             $sBody = (string)$oRes->getBody();
-            $oImg = $this->getDomParser()->load($sBody)->find('#theImage img')[0];
+            $oImg = $this->getDomParser()->loadStr($sBody)->find('#theImage img')[0];
             $sFilename = 'https://' . $this->getDomain() . '/' . $oImg->getAttribute('src');
             $sBasename = $this->getFolder() . DIRECTORY_SEPARATOR . str_pad($index++, 5, '0', STR_PAD_LEFT)
                 . '-' . basename($sFilename);

@@ -4,12 +4,13 @@ namespace Yamete\Driver;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\Utils;
 use Yamete\DriverAbstract;
 
 class SimplyHentai extends DriverAbstract
 {
-    private $aMatches = [];
     private const DOMAIN = 'simply-hentai.com';
+    private array $aMatches = [];
 
     public function canHandle(): bool
     {
@@ -19,17 +20,17 @@ class SimplyHentai extends DriverAbstract
     }
 
     /**
-     * @return array|string[]
+     * @return array
      * @throws GuzzleException
      */
     public function getDownloadables(): array
     {
         $sUrl = 'https://' . $this->aMatches['domain'] . '/' . $this->aMatches['album'] .
-            ($this->aMatches['album']{strlen($this->aMatches['album']) - 1} == '/' ? '' : '/') . 'all-pages';
+            ($this->aMatches['album'][strlen($this->aMatches['album']) - 1] == '/' ? '' : '/') . 'all-pages';
         $oRes = $this->getClient()->request('GET', $sUrl);
         $aReturn = [];
         $index = 0;
-        $aJson = \GuzzleHttp\json_decode((string)$oRes->getBody(), true);
+        $aJson = Utils::jsonDecode((string)$oRes->getBody(), true);
         foreach ($aJson as $aData) {
             $sFilename = $aData['full'];
             $sPath = $this->getFolder() . DIRECTORY_SEPARATOR .
@@ -39,13 +40,13 @@ class SimplyHentai extends DriverAbstract
         return $aReturn;
     }
 
-    private function getFolder(): string
-    {
-        return implode(DIRECTORY_SEPARATOR, [self::DOMAIN, $this->aMatches['album']]);
-    }
-
     public function getClient(array $aOptions = []): Client
     {
         return parent::getClient(['headers' => ['Accept' => 'application/json']]);
+    }
+
+    private function getFolder(): string
+    {
+        return implode(DIRECTORY_SEPARATOR, [self::DOMAIN, $this->aMatches['album']]);
     }
 }

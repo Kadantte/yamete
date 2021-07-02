@@ -2,13 +2,20 @@
 
 namespace Yamete\Driver;
 
+use GuzzleHttp\Exception\GuzzleException;
 use iterator;
+use PHPHtmlParser\Exceptions\ChildNotFoundException;
+use PHPHtmlParser\Exceptions\CircularException;
+use PHPHtmlParser\Exceptions\ContentLengthException;
+use PHPHtmlParser\Exceptions\LogicalException;
+use PHPHtmlParser\Exceptions\NotLoadedException;
+use PHPHtmlParser\Exceptions\StrictException;
 use Yamete\DriverAbstract;
 
 class MilfToonXXX extends DriverAbstract
 {
     private const DOMAIN = 'milftoon.xxx';
-    private $aMatches = [];
+    private array $aMatches = [];
 
     public function canHandle(): bool
     {
@@ -19,6 +26,16 @@ class MilfToonXXX extends DriverAbstract
         );
     }
 
+    /**
+     * @return array
+     * @throws GuzzleException
+     * @throws ChildNotFoundException
+     * @throws CircularException
+     * @throws ContentLengthException
+     * @throws LogicalException
+     * @throws NotLoadedException
+     * @throws StrictException
+     */
     public function getDownloadables(): array
     {
         /**
@@ -44,7 +61,7 @@ class MilfToonXXX extends DriverAbstract
                     ],
                 ]
             )->getBody();
-        $oChapters = $this->getDomParser()->load($sResponse)->find('.wp-manga-chapter a');
+        $oChapters = $this->getDomParser()->loadStr($sResponse)->find('.wp-manga-chapter a');
         $aChapters = iterator_to_array($oChapters);
         krsort($aChapters);
         $aReturn = [];

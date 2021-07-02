@@ -1,4 +1,4 @@
-VERSION ?= 1.20.0
+VERSION ?= 1.21.1
 CACHE ?= --no-cache=1
 FULLVERSION ?= ${VERSION}
 archs ?= amd64 arm32v6 arm64v8 i386
@@ -16,7 +16,7 @@ build: qemu-aarch64-static qemu-arm-static build/test-image
 		docker build -t jaymoulin/yamete:${VERSION}-$(arch) --build-arg VERSION=${VERSION} ${CACHE} .;\
 	)
 publish:
-	docker push jaymoulin/yamete
+	docker push jaymoulin/yamete -a
 	cat manifest.yml | sed "s/\$$VERSION/${VERSION}/g" > manifest.yaml
 	cat manifest.yaml | sed "s/\$$FULLVERSION/${FULLVERSION}/g" > manifest2.yaml
 	mv manifest2.yaml manifest.yaml
